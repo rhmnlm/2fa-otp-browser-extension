@@ -30,6 +30,9 @@
     await renderAuthList();
     toggleOnboarding();
 
+    // Clean up webcam if the popup is closed by clicking away
+    window.addEventListener('unload', () => stopWebcam());
+
     // Plus button: toggle add-section visibility
     newAuthBtn.addEventListener('click', () => {
       const isVisible = addSection.style.display !== 'none';
@@ -149,6 +152,16 @@
       alert('Secret is required to add authenticator.');
       return;
     }
+
+    // Duplicate Check
+    const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
+    const isDuplicate = authList.some(a => a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret);
+    
+    if (isDuplicate) {
+      alert('An authenticator with this exact secret already exists in your vault.');
+      return;
+    }
+
     const id = 'auth-' + Date.now() + '-' + Math.floor(Math.random()*1000);
     const a = {
       id,
@@ -187,6 +200,15 @@
       if (a.imageDataUrl) thumb.src = a.imageDataUrl;
       else thumb.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(defaultAvatarSvg());
 
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'auth-thumb-wrap';
+      thumbWrap.title = 'Change icon';
+      thumbWrap.appendChild(thumb);
+      const thumbOverlay = document.createElement('div');
+      thumbOverlay.className = 'auth-thumb-overlay';
+      thumbOverlay.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+      thumbWrap.appendChild(thumbOverlay);
+
       const nameInput = document.createElement('input');
       nameInput.className = 'auth-name';
       nameInput.value = a.name;
@@ -197,7 +219,8 @@
 
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove-btn';
-      removeBtn.textContent = 'Remove';
+      removeBtn.title = 'Remove';
+      removeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
       removeBtn.addEventListener('click', async () => {
         if (!confirm('Remove this authenticator?')) return;
         authList = authList.filter(x => x.id !== a.id);
@@ -206,9 +229,6 @@
         toggleOnboardingResetIfNeeded();
       });
 
-      const setImageBtn = document.createElement('button');
-      setImageBtn.className = 'image-btn';
-      setImageBtn.textContent = 'Set image';
       const hiddenInput = document.createElement('input');
       hiddenInput.type = 'file';
       hiddenInput.accept = 'image/*';
@@ -221,7 +241,7 @@
         thumb.src = dataUrl;
         await saveAuths();
       });
-      setImageBtn.addEventListener('click', () => hiddenInput.click());
+      thumbWrap.addEventListener('click', () => hiddenInput.click());
 
       // Export button (⋮)
       const menuBtn = document.createElement('button');
@@ -229,45 +249,53 @@
       menuBtn.textContent = '⋮';
       menuBtn.title = 'Export';
 
-      // Export panel (hidden by default)
-      const exportPanel = document.createElement('div');
-      exportPanel.className = 'export-panel';
-      exportPanel.hidden = true;
+      // Dropdown menu (hidden by default)
+      const dropdown = document.createElement('div');
+      dropdown.className = 'export-dropdown';
+      dropdown.hidden = true;
 
-      const otpauthUrl = buildOtpauthUrl(a);
-
-      const exportTitle = document.createElement('div');
-      exportTitle.className = 'export-title';
-      exportTitle.textContent = 'Export';
-
-      const linkRow = document.createElement('div');
-      linkRow.className = 'export-link-row';
-      const linkInput = document.createElement('input');
-      linkInput.className = 'export-link-input';
-      linkInput.readOnly = true;
-      linkInput.value = otpauthUrl;
-      const copyLinkBtn = document.createElement('button');
-      copyLinkBtn.textContent = 'Copy';
-      copyLinkBtn.className = 'export-copy-btn';
-      copyLinkBtn.addEventListener('click', async () => {
-        await navigator.clipboard.writeText(otpauthUrl);
-        copyLinkBtn.textContent = 'Copied!';
-        setTimeout(() => { copyLinkBtn.textContent = 'Copy'; }, 1500);
+      const exportAsUrlBtn = document.createElement('button');
+      exportAsUrlBtn.className = 'export-dropdown-item';
+      exportAsUrlBtn.textContent = 'Export as URL';
+      exportAsUrlBtn.addEventListener('click', async () => {
+        const otpauthUrl = buildOtpauthUrl(a);
+        try {
+          await navigator.clipboard.writeText(otpauthUrl);
+          showToast('URL copied to clipboard');
+        } catch (e) {
+          showToast('Failed to copy URL');
+        }
+        dropdown.hidden = true;
       });
-      linkRow.appendChild(linkInput);
-      linkRow.appendChild(copyLinkBtn);
 
-      const qrCanvas = document.createElement('canvas');
-      qrCanvas.className = 'export-qr';
+      const exportAsQrBtn = document.createElement('button');
+      exportAsQrBtn.className = 'export-dropdown-item';
+      exportAsQrBtn.textContent = 'Export as QR';
+      exportAsQrBtn.addEventListener('click', () => {
+        const otpauthUrl = buildOtpauthUrl(a);
+        const canvas = document.createElement('canvas');
+        renderQr(canvas, otpauthUrl);
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `${a.name || 'otp'}-qr.png`;
+        link.click();
+        dropdown.hidden = true;
+      });
 
-      exportPanel.appendChild(exportTitle);
-      exportPanel.appendChild(linkRow);
-      exportPanel.appendChild(qrCanvas);
+      dropdown.appendChild(exportAsUrlBtn);
+      dropdown.appendChild(exportAsQrBtn);
 
-      menuBtn.addEventListener('click', () => {
-        const opening = exportPanel.hidden;
-        exportPanel.hidden = !opening;
-        if (opening) renderQr(qrCanvas, otpauthUrl);
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.hidden = !dropdown.hidden;
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', () => {
+        dropdown.hidden = true;
+      });
+      dropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
 
       // OTP area
@@ -283,7 +311,7 @@
             await navigator.clipboard.writeText(otpCode.textContent);
             showToast('OTP copied to clipboard');
           } catch (e) {
-            // ignore
+            showToast('Failed to copy OTP');
           }
         }
       });
@@ -309,15 +337,17 @@
       topRow.style.display = 'flex';
       topRow.style.alignItems = 'center';
       topRow.style.gap = '8px';
-      topRow.appendChild(thumb);
+      topRow.appendChild(thumbWrap);
       topRow.appendChild(nameInput);
       topRow.appendChild(removeBtn);
-      topRow.appendChild(setImageBtn);
-      topRow.appendChild(menuBtn);
+      const menuWrap = document.createElement('div');
+      menuWrap.style.position = 'relative';
+      menuWrap.appendChild(menuBtn);
+      menuWrap.appendChild(dropdown);
+      topRow.appendChild(menuWrap);
       topRow.appendChild(hiddenInput);
       item.appendChild(topRow);
       item.appendChild(otpWrap);
-      item.appendChild(exportPanel);
 
       // Append to list
       authListEl.appendChild(item);

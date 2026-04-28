@@ -71,8 +71,23 @@ body {
   background: #141824;
 }
 .auth-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
-.auth-name { width: 140px; margin-left: 8px; padding: 4px 6px; border-radius: 4px; border: 1px solid #333; background: #1e2030; color: white; }
-.remove-btn, .copy-btn, .image-btn { margin-left: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #eee; cursor: pointer; }
+.auth-thumb-wrap { position: relative; display: inline-block; cursor: pointer; }
+.auth-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: #eee;
+}
+.auth-thumb-wrap:hover .auth-thumb-overlay { opacity: 1; }
+.auth-name { flex: 1; margin-left: 8px; padding: 4px 6px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: white; }
+.auth-name:hover, .auth-name:focus { border-color: #555; background: #1e2030; outline: none; }
+.remove-btn { margin-left: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #eee; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .auth-otp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas; font-size: 20px; letter-spacing: 0.5px; padding: 6px 12px; border-radius: 6px; background: #111; cursor: pointer; user-select: none; display: inline-block; min-width: 110px; text-align: center; }
 .otp-area { display: flex; align-items: center; gap: 8px; }
 .remaining { font-size: 12px; color: var(--muted); }
@@ -100,54 +115,32 @@ body {
 }
 .menu-btn:hover { background: #383838; }
 
-.export-panel {
-  margin-top: 10px;
-  padding: 10px;
-  background: #11141e;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.export-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.export-link-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.export-link-input {
-  flex: 1;
-  padding: 5px 8px;
-  border-radius: 5px;
-  border: 1px solid #333;
+.export-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
   background: #1e2030;
-  color: #ccc;
-  font-size: 11px;
-  font-family: ui-monospace, monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.export-copy-btn {
-  padding: 5px 10px;
-  border-radius: 5px;
   border: 1px solid #333;
-  background: #2a2a2a;
-  color: #eee;
-  cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.export-copy-btn:hover { background: #383838; }
-.export-qr {
-  display: block;
   border-radius: 6px;
-  image-rendering: pixelated;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  z-index: 10;
+  min-width: 140px;
+  overflow: hidden;
+}
+.export-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #eee;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.export-dropdown-item:hover {
+  background: #2a2f45;
+}
+.export-dropdown-item + .export-dropdown-item {
+  border-top: 1px solid #2a2a2a;
 }
