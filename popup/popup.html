@@ -7,12 +7,20 @@
 </head>
 <body>
   <div id="app">
-    <header class="header">
-      <h1>OTP Vault</h1>
-      <span class="subtitle">Manage and copy OTPs with QR/link imports</span>
+    <header class="header" style="display:flex;justify-content:space-between;align-items:center;gap:8px; padding-right:16px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <img src="../icons/@icon.svg" alt="OTP Vault" width="28" height="28"/>
+        <h1 style="margin:0;font-size:18px;">OTP Vault</h1>
+      </div>
+      <button id="new-auth" class="primary" title="Add authenticator" style="padding:6px 10px; font-size:14px; border-radius:6px;">+</button>
     </header>
 
-    <section id="add-section" class="panel">
+    <section id="onboarding-section" class="panel" style="display:none;">
+      <h2>Getting started</h2>
+      <p>Click the + button to add your first authenticator. This onboarding helps you set up your first token quickly.</p>
+    </section>
+
+    <section id="add-section" class="panel" style="display:none;">
       <h2>Add authenticator</h2>
       <div class="tabs" id="import-tabs">
         <button class="tab-btn active" data-tab="qr">QR (webcam)</button>
@@ -49,6 +57,7 @@
       <div id="auth-list" class="list"></div>
     </section>
   </div>
+  <script src="qrcode.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

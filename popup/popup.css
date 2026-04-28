@@ -86,5 +86,68 @@ body {
   .list { grid-template-columns: 1fr; }
   .auth-item { grid-template-columns: 1fr auto; }
 }
-JSON
-)
+
+.menu-btn {
+  margin-left: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #2a2a2a;
+  color: #eee;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.menu-btn:hover { background: #383838; }
+
+.export-panel {
+  margin-top: 10px;
+  padding: 10px;
+  background: #11141e;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.export-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.export-link-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.export-link-input {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  background: #1e2030;
+  color: #ccc;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.export-copy-btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  background: #2a2a2a;
+  color: #eee;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.export-copy-btn:hover { background: #383838; }
+.export-qr {
+  display: block;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}

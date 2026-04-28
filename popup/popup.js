@@ -17,12 +17,25 @@
   const linkFeedback = document.getElementById('link-feedback');
   const qrFeedback = document.getElementById('qr-feedback');
   const uploadFeedback = document.getElementById('upload-feedback');
+  const onboardingSection = document.getElementById('onboarding-section');
+  const newAuthBtn = document.getElementById('new-auth');
 
   let videoStream = null;
   let detector = null;
+  const addSection = document.getElementById('add-section');
 
   // Init
   document.addEventListener('DOMContentLoaded', async () => {
+    await loadAuths();
+    await renderAuthList();
+    toggleOnboarding();
+
+    // Plus button: toggle add-section visibility
+    newAuthBtn.addEventListener('click', () => {
+      const isVisible = addSection.style.display !== 'none';
+      addSection.style.display = isVisible ? 'none' : 'block';
+    });
+
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -46,6 +59,7 @@
       addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
       otpUrlInput.value = '';
       linkFeedback.textContent = 'Imported from URL';
+      toggleOnboarding();
     });
 
     // Image import
@@ -62,6 +76,7 @@
         if (parsed) {
           addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
           uploadFeedback.textContent = 'Decoded and added from image';
+          toggleOnboarding();
         } else {
           uploadFeedback.textContent = 'Could not parse OTP URL from image';
         }
@@ -86,129 +101,24 @@
       }
     });
 
-    // Load existing authenticators
-    await loadAuths();
-    await renderAuthList();
-
     // Start timer to refresh OTPs
     setInterval(() => refreshAllOtps(), 1000);
   });
 
   // Helpers
 
-  function parseOtpAuthUrl(url) {
-    // Format: otpauth://totp/{issuer}:{account}?secret={secret}&issuer={issuer}&digits={digits}&period={period}
-    try {
-      const u = new URL(url);
-      if (u.protocol !== 'otpauth:') return null;
-      const type = u.host; // e.g., totp
-      const label = decodeURIComponent(u.pathname).replace(/^\//, '');
-      const name = label.includes(':') ? label.split(':').slice(0,2).join(':') : label;
-      // Parse query
-      const secret = u.searchParams.get('secret');
-      const digits = parseInt(u.searchParams.get('digits') || '6', 10);
-      const period = parseInt(u.searchParams.get('period') || '30', 10);
-      const issuer = u.searchParams.get('issuer') || '';
-      return {
-        name: name || issuer || 'Authenticator',
-        issuer: issuer || name || '',
-        secret: secret,
-        digits: digits,
-        period: period,
-        type: 'totp'
-      };
-    } catch (e) {
-      return null;
+  function toggleOnboarding() {
+    if (authList.length === 0) {
+      onboardingSection.style.display = 'block';
+      addSection.style.display = 'block';
+    } else {
+      onboardingSection.style.display = 'none';
+      // Don't touch add-section here — user controls it via the + button
     }
   }
 
-  function decodeOtpFromLink(url) {
-    // If a plain otpauth URL string is passed directly (without URL object)
-    // This helper tries to reuse parseOtpAuthUrl; if fails, returns null
-    return parseOtpAuthUrl(url);
-  }
-
-  async function ensureBarcodeDetector() {
-    if (!('BarcodeDetector' in window)) {
-      qrFeedback.textContent = 'BarcodeDetector not available in this browser. Please use image upload with decoding or a compatible browser.';
-      detector = null;
-      return;
-    }
-    if (!detector) {
-      detector = new BarcodeDetector({ formats: ['qr_code'] });
-    }
-  }
-
-  async function startWebcamScan() {
-    if (videoStream) return;
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      videoEl.srcObject = videoStream;
-      await videoEl.play();
-      stopScanBtn.disabled = false;
-      // Scan loop
-      scanLoop();
-    } catch (e) {
-      qrFeedback.textContent = 'Unable to access webcam: ' + (e?.message || e);
-    }
-  }
-
-  function stopWebcam() {
-    if (videoStream) {
-      videoStream.getTracks().forEach(t => t.stop());
-      videoStream = null;
-      videoEl.srcObject = null;
-      stopScanBtn.disabled = true;
-    }
-  }
-
-  async function scanLoop() {
-    if (!videoEl || videoEl.readyState < 2) {
-      requestAnimationFrame(scanLoop);
-      return;
-    }
-    const w = videoEl.videoWidth;
-    const h = videoEl.videoHeight;
-    if (w && h) {
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoEl, 0, 0, w, h);
-      try {
-        const bitmap = await createImageBitmap(canvas);
-        const barcodes = await detector.detect(bitmap);
-        if (barcodes && barcodes.length > 0) {
-          const raw = barcodes[0].rawValue;
-          if (raw) {
-            // Stop after first successful scan
-            stopWebcam();
-            const parsed = parseOtpAuthUrl(raw) || decodeOtpFromLink(raw);
-            if (parsed) {
-              addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
-              qrFeedback.textContent = 'Imported from QR (webcam).';
-              return;
-            } else {
-              qrFeedback.textContent = 'Scanned data is not a valid otpauth URL.';
-            }
-          }
-        } else {
-          qrFeedback.textContent = 'Scanning...';
-        }
-      } catch (err) {
-        // ignore
-      }
-    }
-    requestAnimationFrame(scanLoop);
-  }
-
-  function fileToDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => resolve(reader.result);
-      reader.readAsDataURL(file);
-    });
+  function toggleOnboardingResetIfNeeded() {
+    toggleOnboarding();
   }
 
   async function decodeFromImage(dataUrl) {
@@ -264,10 +174,6 @@
     return chrome.storage.local.set({ [STORAGE_KEY]: authList });
   }
 
-  async function loadAuthsAndRender() {
-    await loadAuths();
-  }
-
   async function renderAuthList() {
     authListEl.innerHTML = '';
     // Build items
@@ -297,6 +203,7 @@
         authList = authList.filter(x => x.id !== a.id);
         await saveAuths();
         await renderAuthList();
+        toggleOnboardingResetIfNeeded();
       });
 
       const setImageBtn = document.createElement('button');
@@ -315,6 +222,53 @@
         await saveAuths();
       });
       setImageBtn.addEventListener('click', () => hiddenInput.click());
+
+      // Export button (⋮)
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'menu-btn';
+      menuBtn.textContent = '⋮';
+      menuBtn.title = 'Export';
+
+      // Export panel (hidden by default)
+      const exportPanel = document.createElement('div');
+      exportPanel.className = 'export-panel';
+      exportPanel.hidden = true;
+
+      const otpauthUrl = buildOtpauthUrl(a);
+
+      const exportTitle = document.createElement('div');
+      exportTitle.className = 'export-title';
+      exportTitle.textContent = 'Export';
+
+      const linkRow = document.createElement('div');
+      linkRow.className = 'export-link-row';
+      const linkInput = document.createElement('input');
+      linkInput.className = 'export-link-input';
+      linkInput.readOnly = true;
+      linkInput.value = otpauthUrl;
+      const copyLinkBtn = document.createElement('button');
+      copyLinkBtn.textContent = 'Copy';
+      copyLinkBtn.className = 'export-copy-btn';
+      copyLinkBtn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(otpauthUrl);
+        copyLinkBtn.textContent = 'Copied!';
+        setTimeout(() => { copyLinkBtn.textContent = 'Copy'; }, 1500);
+      });
+      linkRow.appendChild(linkInput);
+      linkRow.appendChild(copyLinkBtn);
+
+      const qrCanvas = document.createElement('canvas');
+      qrCanvas.className = 'export-qr';
+
+      exportPanel.appendChild(exportTitle);
+      exportPanel.appendChild(linkRow);
+      exportPanel.appendChild(qrCanvas);
+
+      menuBtn.addEventListener('click', () => {
+        const opening = exportPanel.hidden;
+        exportPanel.hidden = !opening;
+        if (opening) renderQr(qrCanvas, otpauthUrl);
+      });
 
       // OTP area
       const otpWrap = document.createElement('div');
@@ -359,9 +313,11 @@
       topRow.appendChild(nameInput);
       topRow.appendChild(removeBtn);
       topRow.appendChild(setImageBtn);
+      topRow.appendChild(menuBtn);
       topRow.appendChild(hiddenInput);
       item.appendChild(topRow);
       item.appendChild(otpWrap);
+      item.appendChild(exportPanel);
 
       // Append to list
       authListEl.appendChild(item);
@@ -372,11 +328,74 @@
   }
 
   function updateSingleOtp(a) {
-    // Compute current OTP using WebCrypto
-    const otpEl = document.querySelector(`#${escapeId(a.id)}.auth-otp`) || null;
-    // The above selector is not robust in this simple approach; instead we locate via id-based elements
-    const otpCodeEl = document.querySelector(`#${a.id} .auth-otp`);
-    // If not found in the naive DOM, directly query by id from otpCodeEl after building
+    computeTotp(a.secret, a.digits || 6, a.period || 30, Date.now())
+      .then(code => {
+        const otpEl = document.querySelector(`#${escapeId(a.id)} .auth-otp`);
+        if (otpEl) otpEl.textContent = code;
+        const countEl = document.getElementById(`count-${a.id}`);
+        const barEl = document.getElementById(`bar-${a.id}`);
+        if (countEl && barEl) {
+          const period = a.period || 30;
+          const elapsed = Math.floor(Date.now() / 1000) % period;
+          const remaining = period - elapsed;
+          countEl.textContent = `expires in ${remaining}s`;
+          barEl.style.width = Math.max(0, Math.min(100, (remaining / period) * 100)) + '%';
+        }
+      })
+      .catch(() => {});
+  }
+
+  async function ensureBarcodeDetector() {
+    if (!('BarcodeDetector' in window)) {
+      qrFeedback.textContent = 'BarcodeDetector not supported in this browser.';
+      return false;
+    }
+    if (!detector) detector = new BarcodeDetector({ formats: ['qr_code'] });
+    return true;
+  }
+
+  async function startWebcamScan() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      videoEl.srcObject = videoStream;
+      startScanBtn.disabled = true;
+      stopScanBtn.disabled = false;
+      qrFeedback.textContent = 'Scanning…';
+      scanLoop();
+    } catch (e) {
+      qrFeedback.textContent = 'Camera access denied or unavailable.';
+    }
+  }
+
+  async function scanLoop() {
+    if (!videoStream || !detector) return;
+    try {
+      const barcodes = await detector.detect(videoEl);
+      if (barcodes && barcodes.length > 0) {
+        const raw = barcodes[0].rawValue;
+        const parsed = parseOtpAuthUrl(raw);
+        if (parsed) {
+          stopWebcam();
+          await addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
+          qrFeedback.textContent = 'QR code imported!';
+          toggleOnboarding();
+          return;
+        }
+      }
+    } catch (e) {
+      // keep scanning
+    }
+    if (videoStream) requestAnimationFrame(scanLoop);
+  }
+
+  function stopWebcam() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoStream = null;
+    }
+    videoEl.srcObject = null;
+    startScanBtn.disabled = false;
+    stopScanBtn.disabled = true;
   }
 
   // Simple robust update using stored IDs
@@ -386,10 +405,7 @@
       computeTotp(a.secret, a.digits || 6, a.period || 30, now)
         .then(code => {
           const otpEl = document.querySelector(`#${escapeId(a.id)} .auth-otp`);
-          // Fallback: if we couldn't find, skip
-          if (otpEl) {
-            otpEl.textContent = code;
-          }
+          if (otpEl) otpEl.textContent = code;
           const countEl = document.getElementById(`count-${a.id}`);
           const barEl = document.getElementById(`bar-${a.id}`);
           if (countEl && barEl) {
@@ -510,6 +526,54 @@
   async function loadAndRenderInitial() {
     await loadAuths();
     await renderAuthList();
+  }
+
+  function buildOtpauthUrl(a) {
+    const label = a.issuer ? `${encodeURIComponent(a.issuer)}:${encodeURIComponent(a.name)}` : encodeURIComponent(a.name);
+    const params = new URLSearchParams({
+      secret: a.secret,
+      issuer: a.issuer || a.name,
+      digits: String(a.digits || 6),
+      period: String(a.period || 30),
+      algorithm: 'SHA1',
+    });
+    return `otpauth://totp/${label}?${params.toString()}`;
+  }
+
+  function renderQr(canvas, text) {
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const cells = qr.getModuleCount();
+    const cellSize = 4;
+    const margin = 8;
+    const size = cells * cellSize + margin * 2;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+    for (let row = 0; row < cells; row++) {
+      for (let col = 0; col < cells; col++) {
+        if (qr.isDark(row, col)) {
+          ctx.fillRect(margin + col * cellSize, margin + row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }
+
+  function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function decodeOtpFromLink(text) {
+    return parseOtpAuthUrl(text);
   }
 
   // Toast helper
