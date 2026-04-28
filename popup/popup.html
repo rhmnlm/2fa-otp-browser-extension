@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OTP Vault</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>OTP Vault</h1>
+      <span class="subtitle">Manage and copy OTPs with QR/link imports</span>
+    </header>
+
+    <section id="add-section" class="panel">
+      <h2>Add authenticator</h2>
+      <div class="tabs" id="import-tabs">
+        <button class="tab-btn active" data-tab="qr">QR (webcam)</button>
+        <button class="tab-btn" data-tab="upload">Upload image</button>
+        <button class="tab-btn" data-tab="link">Link</button>
+      </div>
+
+      <div id="tab-qr" class="tab-content active">
+        <div class="qr-controls">
+          <video id="video" width="320" height="240" autoplay muted playsinline></video>
+          <div class="scan-actions">
+            <button id="start-scan">Start scanning QR</button>
+            <button id="stop-scan" disabled>Stop</button>
+          </div>
+        </div>
+        <div id="qr-feedback" class="feedback"></div>
+      </div>
+
+      <div id="tab-upload" class="tab-content">
+        <input type="file" id="image-input" accept="image/*" />
+        <img id="image-preview" class="preview" src="" alt="Preview" hidden />
+        <div id="upload-feedback" class="feedback"></div>
+      </div>
+
+      <div id="tab-link" class="tab-content">
+        <input type="text" id="otp-url" placeholder="otpauth://totp/Issuer:Account?secret=BASE32…" />
+        <button id="import-url-btn" class="primary">Import</button>
+        <div id="link-feedback" class="feedback"></div>
+      </div>
+    </section>
+
+    <section id="list-section" class="panel">
+      <h2>Authenticators</h2>
+      <div id="auth-list" class="list"></div>
+    </section>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
