@@ -60,6 +60,9 @@ body {
   border-radius: 6px;
   cursor: pointer;
 }
+.primary.danger {
+  background: var(--red);
+}
 .list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 0; }
 .auth-item {
   display: flex;

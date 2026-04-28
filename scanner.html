@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scan QR Code — OTP Vault</title>
+  <style>
+    :root {
+      --bg: #0f111a;
+      --text: #e7e7e7;
+      --muted: #9aa4b2;
+      --accent: #6aa7ff;
+      --green: #4caf50;
+      --red: #e57373;
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      gap: 16px;
+      padding: 24px;
+    }
+    h1 { margin: 0; font-size: 20px; }
+    video {
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-width: 90vw;
+      max-height: 60vh;
+      background: #111;
+    }
+    .status { color: var(--muted); font-size: 14px; min-height: 20px; }
+    .success { color: var(--green); font-size: 16px; font-weight: 600; }
+    .error { color: var(--red); font-size: 14px; }
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+    .secondary {
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scan QR Code</h1>
+  <video id="video" autoplay muted playsinline></video>
+  <div id="status" class="status">Requesting camera access…</div>
+  <button id="stop-btn" class="secondary">Stop scanning</button>
+  <script src="scanner.js"></script>
+</body>
+</html>

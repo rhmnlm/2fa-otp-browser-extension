@@ -8,8 +8,6 @@
   // Elements
   const authListEl = document.getElementById('auth-list');
   const startScanBtn = document.getElementById('start-scan');
-  const stopScanBtn = document.getElementById('stop-scan');
-  const videoEl = document.getElementById('video');
   const imageInput = document.getElementById('image-input');
   const imagePreview = document.getElementById('image-preview');
   const otpUrlInput = document.getElementById('otp-url');
@@ -20,8 +18,6 @@
   const onboardingSection = document.getElementById('onboarding-section');
   const newAuthBtn = document.getElementById('new-auth');
 
-  let videoStream = null;
-  let detector = null;
   const addSection = document.getElementById('add-section');
 
   // Init
@@ -30,13 +26,11 @@
     await renderAuthList();
     toggleOnboarding();
 
-    // Clean up webcam if the popup is closed by clicking away
-    window.addEventListener('unload', () => stopWebcam());
-
     // Plus button: toggle add-section visibility
     newAuthBtn.addEventListener('click', () => {
       const isVisible = addSection.style.display !== 'none';
       addSection.style.display = isVisible ? 'none' : 'block';
+      syncAddButtonState();
     });
 
     // Tab switching
@@ -88,14 +82,10 @@
       }
     });
 
-    // Start scanning
-    startScanBtn.addEventListener('click', async () => {
-      qrFeedback.textContent = '';
-      await ensureBarcodeDetector();
-      await startWebcamScan();
+    // Open QR scanner in a new tab
+    startScanBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL('scanner.html'), active: true });
     });
-
-    stopScanBtn.addEventListener('click', () => stopWebcam());
 
     // OTP URLs input
     otpUrlInput.addEventListener('keydown', (e) => {
@@ -110,6 +100,13 @@
 
   // Helpers
 
+  function syncAddButtonState() {
+    const isOpen = addSection.style.display !== 'none';
+    newAuthBtn.textContent = isOpen ? '×' : '+';
+    newAuthBtn.classList.toggle('danger', isOpen);
+    newAuthBtn.title = isOpen ? 'Close' : 'Add authenticator';
+  }
+
   function toggleOnboarding() {
     if (authList.length === 0) {
       onboardingSection.style.display = 'block';
@@ -118,6 +115,7 @@
       onboardingSection.style.display = 'none';
       // Don't touch add-section here — user controls it via the + button
     }
+    syncAddButtonState();
   }
 
   function toggleOnboardingResetIfNeeded() {
@@ -386,59 +384,6 @@
         }
       })
       .catch(() => {});
-  }
-
-  async function ensureBarcodeDetector() {
-    if (!('BarcodeDetector' in window)) {
-      qrFeedback.textContent = 'BarcodeDetector not supported in this browser.';
-      return false;
-    }
-    if (!detector) detector = new BarcodeDetector({ formats: ['qr_code'] });
-    return true;
-  }
-
-  async function startWebcamScan() {
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      videoEl.srcObject = videoStream;
-      startScanBtn.disabled = true;
-      stopScanBtn.disabled = false;
-      qrFeedback.textContent = 'Scanning…';
-      scanLoop();
-    } catch (e) {
-      qrFeedback.textContent = 'Camera access denied or unavailable.';
-    }
-  }
-
-  async function scanLoop() {
-    if (!videoStream || !detector) return;
-    try {
-      const barcodes = await detector.detect(videoEl);
-      if (barcodes && barcodes.length > 0) {
-        const raw = barcodes[0].rawValue;
-        const parsed = parseOtpAuthUrl(raw);
-        if (parsed) {
-          stopWebcam();
-          await addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
-          qrFeedback.textContent = 'QR code imported!';
-          toggleOnboarding();
-          return;
-        }
-      }
-    } catch (e) {
-      // keep scanning
-    }
-    if (videoStream) requestAnimationFrame(scanLoop);
-  }
-
-  function stopWebcam() {
-    if (videoStream) {
-      videoStream.getTracks().forEach(t => t.stop());
-      videoStream = null;
-    }
-    videoEl.srcObject = null;
-    startScanBtn.disabled = false;
-    stopScanBtn.disabled = true;
   }
 
   // Simple robust update using stored IDs
