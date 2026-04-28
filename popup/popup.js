@@ -333,21 +333,34 @@
       otpWrap.appendChild(progressWrap);
 
       // Assemble item
-      const topRow = document.createElement('div');
-      topRow.style.display = 'flex';
-      topRow.style.alignItems = 'center';
-      topRow.style.gap = '8px';
-      topRow.appendChild(thumbWrap);
-      topRow.appendChild(nameInput);
-      topRow.appendChild(removeBtn);
+      const leftGroup = document.createElement('div');
+      leftGroup.style.display = 'flex';
+      leftGroup.style.alignItems = 'center';
+      leftGroup.style.gap = '8px';
+      leftGroup.style.width = '49%';
+
+      const rightGroup = document.createElement('div');
+      rightGroup.style.display = 'flex';
+      rightGroup.style.alignItems = 'center';
+      rightGroup.style.gap = '8px';
+      rightGroup.style.width = '49%';
+      rightGroup.style.justifyContent = 'flex-end';
+      rightGroup.style.marginRight = '8px';
+
       const menuWrap = document.createElement('div');
       menuWrap.style.position = 'relative';
       menuWrap.appendChild(menuBtn);
       menuWrap.appendChild(dropdown);
-      topRow.appendChild(menuWrap);
-      topRow.appendChild(hiddenInput);
-      item.appendChild(topRow);
-      item.appendChild(otpWrap);
+
+      leftGroup.appendChild(thumbWrap);
+      leftGroup.appendChild(nameInput);
+      rightGroup.appendChild(removeBtn);
+      rightGroup.appendChild(menuWrap);
+      rightGroup.appendChild(otpWrap);
+
+      item.appendChild(leftGroup);
+      item.appendChild(rightGroup);
+      item.appendChild(hiddenInput);
 
       // Append to list
       authListEl.appendChild(item);
