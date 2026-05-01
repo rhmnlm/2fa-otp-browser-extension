@@ -11,7 +11,7 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
   --red: #e57373;
 }
 * { box-sizing: border-box; }
-html, body: {
+html, body {
   margin: 0;
   padding: 0;
 }
