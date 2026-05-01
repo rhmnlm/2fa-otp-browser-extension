@@ -209,9 +209,6 @@ body {
   min-height: 20px;
 }
 .lock-btn {
-  position: fixed;
-  top: 12px;
-  right: 52px;
   padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid #333;
@@ -219,6 +216,5 @@ body {
   color: #eee;
   cursor: pointer;
   font-size: 12px;
-  z-index: 50;
 }
 .lock-btn:hover { background: #383838; }

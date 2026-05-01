@@ -83,7 +83,11 @@ async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, t
     return;
   }
   const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
-  const isDuplicate = authList.some(a => a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret);
+  const isDuplicate = authList.some(a =>
+    a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret &&
+    (a.issuer || '').toLowerCase() === (issuer || '').toLowerCase() &&
+    (a.name || '').toLowerCase() === (name || '').toLowerCase()
+  );
   if (isDuplicate) {
     statusEl.textContent = 'This authenticator already exists in your vault.';
     statusEl.className = 'error';

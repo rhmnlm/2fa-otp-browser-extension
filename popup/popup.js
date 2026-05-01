@@ -31,6 +31,12 @@
   const unlockError = document.getElementById('unlock-error');
   const lockBtn = document.getElementById('lock-btn');
 
+  // Confirm modal elements
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmMessage = document.getElementById('confirm-message');
+  const confirmOk = document.getElementById('confirm-ok');
+  const confirmCancel = document.getElementById('confirm-cancel');
+
   // Init
   document.addEventListener('DOMContentLoaded', async () => {
     const vaultExists = await isVaultSetup();
@@ -183,12 +189,16 @@
       return;
     }
 
-    // Duplicate Check
+    // Duplicate Check — exact match on secret + issuer + name
     const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
-    const isDuplicate = authList.some(a => a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret);
-    
+    const isDuplicate = authList.some(a =>
+      a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret &&
+      (a.issuer || '').toLowerCase() === (issuer || '').toLowerCase() &&
+      (a.name || '').toLowerCase() === (name || '').toLowerCase()
+    );
+
     if (isDuplicate) {
-      alert('An authenticator with this exact secret already exists in your vault.');
+      alert('This authenticator already exists in your vault.');
       return;
     }
 
@@ -302,6 +312,31 @@
     }
   }
 
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      confirmMessage.textContent = message;
+      confirmOverlay.classList.remove('hidden');
+
+      const onOk = () => {
+        confirmOverlay.classList.add('hidden');
+        cleanup();
+        resolve(true);
+      };
+      const onCancel = () => {
+        confirmOverlay.classList.add('hidden');
+        cleanup();
+        resolve(false);
+      };
+      const cleanup = () => {
+        confirmOk.removeEventListener('click', onOk);
+        confirmCancel.removeEventListener('click', onCancel);
+      };
+
+      confirmOk.addEventListener('click', onOk);
+      confirmCancel.addEventListener('click', onCancel);
+    });
+  }
+
   async function renderAuthList() {
     authListEl.innerHTML = '';
     // Build items
@@ -391,7 +426,8 @@
       deleteBtn.style.color = 'var(--red)';
       deleteBtn.textContent = 'Delete';
       deleteBtn.addEventListener('click', async () => {
-        if (!confirm('Remove this authenticator?')) return;
+        const ok = await showConfirm('Remove this authenticator?');
+        if (!ok) return;
         authList = authList.filter(x => x.id !== a.id);
         await saveAuths();
         await renderAuthList();

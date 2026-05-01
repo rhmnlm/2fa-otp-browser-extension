@@ -7,12 +7,15 @@
 </head>
 <body>
   <div id="app">
-    <header class="header" style="display:flex;justify-content:space-between;align-items:center;gap:8px; padding-right:16px;">
+    <header class="header" style="display:flex;justify-content:space-between;align-items:center;gap:8px; padding-right:16px; position:sticky; top:0; z-index:40; background:var(--bg);">
       <div style="display:flex;align-items:center;gap:8px;">
         <img src="../icons/icon.svg" alt="OTP Vault" width="28" height="28"/>
         <h1 style="margin:0;font-size:18px;">OTP Vault</h1>
       </div>
-      <button id="new-auth" class="primary" title="Add authenticator" style="padding:6px 10px; font-size:14px; border-radius:6px;">+</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="lock-btn" class="lock-btn" title="Lock vault" hidden>Lock</button>
+        <button id="new-auth" class="primary" title="Add authenticator" style="padding:6px 10px; font-size:14px; border-radius:6px;">+</button>
+      </div>
     </header>
 
     <section id="onboarding-section" class="panel" style="display:none;">
@@ -52,8 +55,6 @@
       <div id="auth-list" class="list"></div>
     </section>
 
-    <button id="lock-btn" class="lock-btn" title="Lock vault" hidden>Lock</button>
-
     <!-- Setup overlay -->
     <div id="setup-overlay" class="overlay hidden">
       <div style="text-align:center;max-width:320px;">
@@ -82,6 +83,17 @@
         <input type="password" id="unlock-pin" class="pin-input" maxlength="32" autocomplete="off" placeholder="Your PIN" />
         <div id="unlock-error" class="pin-error"></div>
         <button id="unlock-btn" class="primary">Unlock</button>
+      </div>
+    </div>
+
+    <!-- Confirm modal -->
+    <div id="confirm-overlay" class="overlay hidden" style="background:rgba(15,17,26,0.85);backdrop-filter:blur(2px);justify-content:center;">
+      <div style="background:var(--card);padding:20px;border-radius:8px;border:1px solid #333;max-width:280px;text-align:center;">
+        <p id="confirm-message" style="margin:0 0 16px;font-size:14px;">Are you sure?</p>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button id="confirm-cancel" class="secondary" style="padding:8px 16px;">Cancel</button>
+          <button id="confirm-ok" class="primary danger" style="padding:8px 16px;">Delete</button>
+        </div>
       </div>
     </div>
   </div>
