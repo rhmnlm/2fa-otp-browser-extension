@@ -4,12 +4,14 @@
   let sessionMasterKey = null;
   let autoLockTimer = null;
   let searchQuery = '';
+  let pendingAvatarAuthId = null;
   const AUTO_LOCK_MS = 5 * 60 * 1000;
 
   // Elements
   const authListEl = document.getElementById('auth-list');
   const searchInput = document.getElementById('search-input');
   const imageInput = document.getElementById('image-input');
+  const avatarInput = document.getElementById('avatar-input');
   const onboardingSection = document.getElementById('onboarding-section');
   const newAuthBtn = document.getElementById('new-auth');
   const addDropdown = document.getElementById('add-dropdown');
@@ -95,7 +97,7 @@
       urlDialogOverlay.classList.add('hidden');
     });
 
-    urlDialogImport.addEventListener('click', () => {
+    urlDialogImport.addEventListener('click', async () => {
       const url = urlDialogInput.value.trim();
       if (!url) return;
       const parsed = parseOtpAuthUrl(url);
@@ -103,12 +105,14 @@
         urlDialogError.textContent = 'Invalid otpauth URL';
         return;
       }
-      addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
-      urlDialogInput.value = '';
-      urlDialogError.textContent = '';
-      urlDialogOverlay.classList.add('hidden');
-      showToast('Imported from URL');
-      toggleOnboarding();
+      const added = await addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
+      if (added) {
+        urlDialogInput.value = '';
+        urlDialogError.textContent = '';
+        urlDialogOverlay.classList.add('hidden');
+        showToast('Imported from URL');
+        toggleOnboarding();
+      }
     });
 
     urlDialogInput.addEventListener('keydown', (e) => {
@@ -126,9 +130,11 @@
       if (code) {
         const parsed = parseOtpAuthUrl(code) || decodeOtpFromLink(code);
         if (parsed) {
-          addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
-          showToast('Decoded and added from image');
-          toggleOnboarding();
+          const added = await addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
+          if (added) {
+            showToast('Decoded and added from image');
+            toggleOnboarding();
+          }
         } else {
           showToast('Could not parse OTP URL from image');
         }
@@ -136,6 +142,26 @@
         showToast('No QR code detected in image');
       }
       imageInput.value = '';
+    });
+
+    // Avatar change
+    avatarInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file || !pendingAvatarAuthId) return;
+      try {
+        const dataUrl = await resizeImageToDataURL(file, 128);
+        const auth = authList.find(x => x.id === pendingAvatarAuthId);
+        if (auth) {
+          auth.imageDataUrl = dataUrl;
+          await saveAuths();
+          await renderAuthList();
+          showToast('Image updated');
+        }
+      } catch (err) {
+        showToast('Failed to process image');
+      }
+      pendingAvatarAuthId = null;
+      avatarInput.value = '';
     });
 
     // Search
@@ -194,13 +220,13 @@
   async function addAuthenticator(name, secret, issuer, digits=6, period=30, type='totp') {
     if (!secret) {
       alert('Secret is required to add authenticator.');
-      return;
+      return false;
     }
 
     const validation = validateBase32Secret(secret);
     if (!validation.ok) {
       alert(`Invalid secret: ${validation.error}`);
-      return;
+      return false;
     }
     const normalizedSecret = validation.normalized;
 
@@ -213,7 +239,7 @@
 
     if (isDuplicate) {
       alert('This authenticator already exists in your vault.');
-      return;
+      return false;
     }
 
     const id = 'auth-' + Date.now() + '-' + Math.floor(Math.random()*1000);
@@ -230,6 +256,7 @@
     authList.push(a);
     await saveAuths();
     await renderAuthList();
+    return true;
   }
 
   async function saveAuths() {
@@ -353,6 +380,30 @@
     });
   }
 
+  async function resizeImageToDataURL(file, maxSize = 128) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(maxSize / img.width, maxSize / img.height);
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const x = (maxSize - drawWidth) / 2;
+        const y = (maxSize - drawHeight) / 2;
+        ctx.drawImage(img, x, y, drawWidth, drawHeight);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = reject;
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function getFilteredAccounts() {
     if (!searchQuery.trim()) return authList;
     const q = searchQuery.toLowerCase();
@@ -370,6 +421,8 @@
       'trash-2': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
       'copy': '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
       'check': '<path d="M20 6 9 17l-5-5"/>',
+      'image': '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+      'x-circle': '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
     };
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[name] || ''}</svg>`;
   }
@@ -492,6 +545,33 @@
 
       dropdown.appendChild(exportUrlBtn);
       dropdown.appendChild(exportQrBtn);
+
+      // Change image
+      const changeImgBtn = document.createElement('button');
+      changeImgBtn.className = 'export-dropdown-item';
+      changeImgBtn.innerHTML = `${iconSvg('image', 14)} Change Image`;
+      changeImgBtn.addEventListener('click', () => {
+        dropdown.style.display = 'none';
+        pendingAvatarAuthId = a.id;
+        avatarInput.click();
+      });
+      dropdown.appendChild(changeImgBtn);
+
+      // Remove image
+      if (a.imageDataUrl) {
+        const removeImgBtn = document.createElement('button');
+        removeImgBtn.className = 'export-dropdown-item';
+        removeImgBtn.innerHTML = `${iconSvg('x-circle', 14)} Remove Image`;
+        removeImgBtn.addEventListener('click', async () => {
+          dropdown.style.display = 'none';
+          a.imageDataUrl = '';
+          await saveAuths();
+          await renderAuthList();
+          showToast('Image removed');
+        });
+        dropdown.appendChild(removeImgBtn);
+      }
+
       const sep = document.createElement('div');
       sep.style.height = '1px';
       sep.style.background = 'var(--border)';

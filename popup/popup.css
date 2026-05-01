@@ -52,9 +52,6 @@ body {
 .header-icon {
   width: 32px;
   height: 32px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
