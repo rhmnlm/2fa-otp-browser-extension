@@ -516,7 +516,7 @@
       copyBtn.appendChild(copiedOverlay);
 
       copyBtn.addEventListener('click', () => {
-        const code = codeSpan.textContent;
+        const code = codeSpan.textContent.replace(/\s/g, '');
         if (!code || code === '------') return;
         navigator.clipboard.writeText(code).then(() => {
           copyBtn.classList.add('copied');
