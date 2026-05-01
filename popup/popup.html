@@ -51,7 +51,41 @@
       <h2>Authenticators</h2>
       <div id="auth-list" class="list"></div>
     </section>
+
+    <button id="lock-btn" class="lock-btn" title="Lock vault" hidden>Lock</button>
+
+    <!-- Setup overlay -->
+    <div id="setup-overlay" class="overlay hidden">
+      <div style="text-align:center;max-width:320px;">
+        <h2 style="margin:0 0 6px;font-size:18px;">Secure your vault</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.4;">
+          Choose a PIN to encrypt your secrets. <strong style="color:var(--text);">No recovery if forgotten.</strong>
+        </p>
+      </div>
+      <div class="pin-form">
+        <label class="pin-label">Create PIN</label>
+        <input type="password" id="setup-pin" class="pin-input" maxlength="32" autocomplete="off" placeholder="Minimum 4 characters" />
+        <label class="pin-label">Confirm PIN</label>
+        <input type="password" id="setup-pin-confirm" class="pin-input" maxlength="32" autocomplete="off" placeholder="Re-enter your PIN" />
+        <div id="setup-error" class="pin-error"></div>
+        <button id="setup-btn" class="primary">Create Vault</button>
+      </div>
+    </div>
+
+    <!-- Unlock overlay -->
+    <div id="unlock-overlay" class="overlay hidden">
+      <div style="text-align:center;max-width:320px;">
+        <h2 style="margin:0 0 6px;font-size:18px;">Vault locked</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:12px;">Enter your PIN to access your authenticators.</p>
+      </div>
+      <div class="pin-form">
+        <input type="password" id="unlock-pin" class="pin-input" maxlength="32" autocomplete="off" placeholder="Your PIN" />
+        <div id="unlock-error" class="pin-error"></div>
+        <button id="unlock-btn" class="primary">Unlock</button>
+      </div>
+    </div>
   </div>
+  <script src="crypto.js"></script>
   <script src="qrcode.js"></script>
   <script src="popup.js"></script>
 </body>

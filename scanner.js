@@ -1,10 +1,56 @@
-const STORAGE_KEY = 'authenticators';
 const videoEl = document.getElementById('video');
 const statusEl = document.getElementById('status');
 const stopBtn = document.getElementById('stop-btn');
+const scannerSection = document.getElementById('scanner-section');
+const unlockSection = document.getElementById('unlock-section');
+const setupMessage = document.getElementById('setup-message');
+const unlockPin = document.getElementById('unlock-pin');
+const unlockBtn = document.getElementById('unlock-btn');
+const unlockError = document.getElementById('unlock-error');
+const closeBtn = document.getElementById('close-btn');
 
 let videoStream = null;
 let detector = null;
+let sessionMasterKey = null;
+let authList = [];
+
+async function init() {
+  const vaultExists = await isVaultSetup();
+  if (!vaultExists) {
+    scannerSection.classList.add('hidden');
+    setupMessage.classList.remove('hidden');
+    return;
+  }
+
+  scannerSection.classList.add('hidden');
+  unlockSection.classList.remove('hidden');
+  unlockPin.focus();
+
+  unlockBtn.addEventListener('click', onUnlock);
+  unlockPin.addEventListener('keydown', (e) => { if (e.key === 'Enter') onUnlock(); });
+  closeBtn.addEventListener('click', () => window.close());
+}
+
+async function onUnlock() {
+  const pin = unlockPin.value.trim();
+  if (!pin) { unlockError.textContent = 'PIN is required'; return; }
+
+  try {
+    const result = await unlockVault(pin);
+    sessionMasterKey = result.masterKey;
+    authList = result.data;
+    unlockSection.classList.add('hidden');
+    scannerSection.classList.remove('hidden');
+    startScanning();
+  } catch (e) {
+    unlockError.textContent = 'Wrong PIN';
+  }
+}
+
+async function saveAuths() {
+  if (!sessionMasterKey) return;
+  return saveVault(authList, sessionMasterKey);
+}
 
 function parseOtpAuthUrl(url) {
   try {
@@ -30,15 +76,6 @@ function parseOtpAuthUrl(url) {
   }
 }
 
-async function loadAuths() {
-  const r = await chrome.storage.local.get([STORAGE_KEY]);
-  return r[STORAGE_KEY] || [];
-}
-
-async function saveAuths(list) {
-  return chrome.storage.local.set({ [STORAGE_KEY]: list });
-}
-
 async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, type = 'totp') {
   if (!secret) {
     statusEl.textContent = 'Invalid QR code: missing secret.';
@@ -46,7 +83,6 @@ async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, t
     return;
   }
   const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
-  const authList = await loadAuths();
   const isDuplicate = authList.some(a => a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret);
   if (isDuplicate) {
     statusEl.textContent = 'This authenticator already exists in your vault.';
@@ -64,7 +100,7 @@ async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, t
     type,
     imageDataUrl: ''
   });
-  await saveAuths(authList);
+  await saveAuths();
   statusEl.textContent = 'QR code imported! You can close this tab.';
   statusEl.className = 'success';
   stopBtn.textContent = 'Close';
@@ -150,4 +186,4 @@ stopBtn.addEventListener('click', () => {
 
 window.addEventListener('beforeunload', () => stopWebcam());
 
-startScanning();
+init();

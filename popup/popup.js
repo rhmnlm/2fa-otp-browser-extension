@@ -1,9 +1,9 @@
 (() => {
-  // Storage key
-  const STORAGE_KEY = 'authenticators';
-
   // App state
   let authList = [];
+  let sessionMasterKey = null;
+  let autoLockTimer = null;
+  const AUTO_LOCK_MS = 5 * 60 * 1000;
 
   // Elements
   const authListEl = document.getElementById('auth-list');
@@ -17,14 +17,41 @@
   const uploadFeedback = document.getElementById('upload-feedback');
   const onboardingSection = document.getElementById('onboarding-section');
   const newAuthBtn = document.getElementById('new-auth');
-
   const addSection = document.getElementById('add-section');
+
+  // Vault UI elements
+  const setupOverlay = document.getElementById('setup-overlay');
+  const unlockOverlay = document.getElementById('unlock-overlay');
+  const setupPin = document.getElementById('setup-pin');
+  const setupPinConfirm = document.getElementById('setup-pin-confirm');
+  const setupBtn = document.getElementById('setup-btn');
+  const setupError = document.getElementById('setup-error');
+  const unlockPin = document.getElementById('unlock-pin');
+  const unlockBtn = document.getElementById('unlock-btn');
+  const unlockError = document.getElementById('unlock-error');
+  const lockBtn = document.getElementById('lock-btn');
 
   // Init
   document.addEventListener('DOMContentLoaded', async () => {
-    await loadAuths();
-    await renderAuthList();
-    toggleOnboarding();
+    const vaultExists = await isVaultSetup();
+    if (!vaultExists) {
+      showSetup();
+    } else {
+      showUnlock();
+    }
+
+    // Vault UI handlers
+    setupBtn.addEventListener('click', onSetup);
+    setupPin.addEventListener('keydown', (e) => { if (e.key === 'Enter') setupPinConfirm.focus(); });
+    setupPinConfirm.addEventListener('keydown', (e) => { if (e.key === 'Enter') onSetup(); });
+    unlockBtn.addEventListener('click', onUnlock);
+    unlockPin.addEventListener('keydown', (e) => { if (e.key === 'Enter') onUnlock(); });
+    lockBtn.addEventListener('click', lockVaultLocal);
+
+    // Reset auto-lock on interaction
+    document.addEventListener('click', resetAutoLock);
+    document.addEventListener('keydown', resetAutoLock);
+    document.addEventListener('input', resetAutoLock);
 
     // Plus button: toggle add-section visibility
     newAuthBtn.addEventListener('click', () => {
@@ -176,13 +203,98 @@
     await renderAuthList();
   }
 
-  async function loadAuths() {
-    const r = await chrome.storage.local.get([STORAGE_KEY]);
-    authList = r[STORAGE_KEY] || [];
+  async function saveAuths() {
+    if (!sessionMasterKey) return;
+    return saveVault(authList, sessionMasterKey);
   }
 
-  async function saveAuths() {
-    return chrome.storage.local.set({ [STORAGE_KEY]: authList });
+  // Vault UI helpers
+
+  function showSetup() {
+    setupOverlay.classList.remove('hidden');
+    unlockOverlay.classList.add('hidden');
+    lockBtn.hidden = true;
+    setupPin.focus();
+  }
+
+  function showUnlock() {
+    unlockOverlay.classList.remove('hidden');
+    setupOverlay.classList.add('hidden');
+    lockBtn.hidden = true;
+    unlockPin.focus();
+  }
+
+  function hideOverlays() {
+    setupOverlay.classList.add('hidden');
+    unlockOverlay.classList.add('hidden');
+    lockBtn.hidden = false;
+  }
+
+  async function onSetup() {
+    const pin = setupPin.value.trim();
+    const confirm = setupPinConfirm.value.trim();
+    if (!pin) { setupError.textContent = 'PIN is required'; return; }
+    if (pin !== confirm) { setupError.textContent = 'PINs do not match'; return; }
+    if (pin.length < 4) { setupError.textContent = 'PIN must be at least 4 characters'; return; }
+
+    try {
+      sessionMasterKey = await setupVault(pin);
+      authList = [];
+      setupPin.value = '';
+      setupPinConfirm.value = '';
+      setupError.textContent = '';
+      hideOverlays();
+      await renderAuthList();
+      toggleOnboarding();
+      startAutoLock();
+    } catch (e) {
+      setupError.textContent = 'Failed to create vault';
+    }
+  }
+
+  async function onUnlock() {
+    const pin = unlockPin.value.trim();
+    if (!pin) { unlockError.textContent = 'PIN is required'; return; }
+
+    try {
+      const result = await unlockVault(pin);
+      sessionMasterKey = result.masterKey;
+      authList = result.data;
+      unlockPin.value = '';
+      unlockError.textContent = '';
+      hideOverlays();
+      await renderAuthList();
+      toggleOnboarding();
+      startAutoLock();
+    } catch (e) {
+      unlockError.textContent = 'Wrong PIN';
+    }
+  }
+
+  function lockVaultLocal() {
+    sessionMasterKey = null;
+    authList = [];
+    clearAutoLock();
+    renderAuthList();
+    showUnlock();
+  }
+
+  function startAutoLock() {
+    clearAutoLock();
+    autoLockTimer = setTimeout(lockVaultLocal, AUTO_LOCK_MS);
+  }
+
+  function clearAutoLock() {
+    if (autoLockTimer) {
+      clearTimeout(autoLockTimer);
+      autoLockTimer = null;
+    }
+  }
+
+  function resetAutoLock() {
+    if (sessionMasterKey) {
+      startAutoLock();
+    }
   }
 
   async function renderAuthList() {
@@ -509,11 +621,6 @@
       return true;
     }
     return false;
-  }
-
-  async function loadAndRenderInitial() {
-    await loadAuths();
-    await renderAuthList();
   }
 
   function buildOtpauthUrl(a) {

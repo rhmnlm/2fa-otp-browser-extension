@@ -53,13 +53,52 @@
       color: #eee;
       border: 1px solid #333;
     }
+    .pin-input {
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1e2030;
+      color: var(--text);
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 4px;
+      width: 220px;
+    }
+    .pin-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .pin-error {
+      color: var(--red);
+      font-size: 13px;
+      min-height: 20px;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <h1>Scan QR Code</h1>
-  <video id="video" autoplay muted playsinline></video>
-  <div id="status" class="status">Requesting camera access…</div>
-  <button id="stop-btn" class="secondary">Stop scanning</button>
+  <div id="unlock-section" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <h1>Unlock vault</h1>
+    <p style="margin:0;color:var(--muted);font-size:13px;">Enter your PIN to scan and import.</p>
+    <input type="password" id="unlock-pin" class="pin-input" maxlength="32" autocomplete="off" />
+    <div id="unlock-error" class="pin-error"></div>
+    <button id="unlock-btn" class="primary">Unlock</button>
+  </div>
+
+  <div id="setup-message" class="hidden" style="text-align:center;">
+    <h1>Vault not set up</h1>
+    <p style="color:var(--muted);font-size:14px;">Please open the OTP Vault popup and create your vault first.</p>
+    <button id="close-btn" class="secondary">Close</button>
+  </div>
+
+  <div id="scanner-section">
+    <h1>Scan QR Code</h1>
+    <video id="video" autoplay muted playsinline></video>
+    <div id="status" class="status">Requesting camera access…</div>
+    <button id="stop-btn" class="secondary">Stop scanning</button>
+  </div>
+
+  <script src="popup/crypto.js"></script>
   <script src="scanner.js"></script>
 </body>
 </html>
