@@ -82,9 +82,15 @@ async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, t
     statusEl.className = 'error';
     return;
   }
-  const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
+  const validation = validateBase32Secret(secret);
+  if (!validation.ok) {
+    statusEl.textContent = `Invalid QR code: ${validation.error}`;
+    statusEl.className = 'error';
+    return;
+  }
+  const normalizedSecret = validation.normalized;
   const isDuplicate = authList.some(a =>
-    a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret &&
+    a.secret.toUpperCase().replace(/[\s=]/g, '') === normalizedSecret &&
     (a.issuer || '').toLowerCase() === (issuer || '').toLowerCase() &&
     (a.name || '').toLowerCase() === (name || '').toLowerCase()
   );
@@ -98,7 +104,7 @@ async function addAuthenticator(name, secret, issuer, digits = 6, period = 30, t
     id,
     name: name || 'Authenticator',
     issuer: issuer || '',
-    secret: secret,
+    secret: normalizedSecret,
     digits,
     period,
     type,

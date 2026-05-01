@@ -197,10 +197,16 @@
       return;
     }
 
+    const validation = validateBase32Secret(secret);
+    if (!validation.ok) {
+      alert(`Invalid secret: ${validation.error}`);
+      return;
+    }
+    const normalizedSecret = validation.normalized;
+
     // Duplicate Check — exact match on secret + issuer + name
-    const cleanSecret = secret.toUpperCase().replace(/[\s=]/g, '');
     const isDuplicate = authList.some(a =>
-      a.secret.toUpperCase().replace(/[\s=]/g, '') === cleanSecret &&
+      a.secret.toUpperCase().replace(/[\s=]/g, '') === normalizedSecret &&
       (a.issuer || '').toLowerCase() === (issuer || '').toLowerCase() &&
       (a.name || '').toLowerCase() === (name || '').toLowerCase()
     );
@@ -215,7 +221,7 @@
       id,
       name: name || 'Authenticator',
       issuer: issuer || '',
-      secret: secret,
+      secret: normalizedSecret,
       digits: digits,
       period: period,
       type: type,

@@ -2,6 +2,29 @@ const PBKDF2_ITERATIONS = 100000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 
+const BASE32_MIN_CHARS = 16;
+const BASE32_MAX_CHARS = 128;
+
+function validateBase32Secret(secret) {
+  if (typeof secret !== 'string') {
+    return { ok: false, error: 'Secret is required.' };
+  }
+  const normalized = secret.toUpperCase().replace(/[\s=]/g, '');
+  if (normalized.length === 0) {
+    return { ok: false, error: 'Secret is empty.' };
+  }
+  if (!/^[A-Z2-7]+$/.test(normalized)) {
+    return { ok: false, error: 'Secret contains invalid Base32 characters (allowed: A–Z, 2–7).' };
+  }
+  if (normalized.length < BASE32_MIN_CHARS) {
+    return { ok: false, error: `Secret is too short (minimum ${BASE32_MIN_CHARS} Base32 characters).` };
+  }
+  if (normalized.length > BASE32_MAX_CHARS) {
+    return { ok: false, error: `Secret is too long (maximum ${BASE32_MAX_CHARS} Base32 characters).` };
+  }
+  return { ok: true, normalized };
+}
+
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
