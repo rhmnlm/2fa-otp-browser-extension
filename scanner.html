@@ -6,12 +6,14 @@
   <title>Scan QR Code — OTP Vault</title>
   <style>
     :root {
-      --bg: #0f111a;
-      --text: #e7e7e7;
-      --muted: #9aa4b2;
-      --accent: #6aa7ff;
-      --green: #4caf50;
-      --red: #e57373;
+      --bg: #F4F4F5;
+      --text: #09090B;
+      --muted: #71717A;
+      --accent: #18181B;
+      --accent-hover: #27272A;
+      --border: #E4E4E7;
+      --green: #22c55e;
+      --red: #ef4444;
     }
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
@@ -28,11 +30,11 @@
     }
     h1 { margin: 0; font-size: 20px; }
     video {
-      border: 1px solid #333;
+      border: 1px solid var(--border);
       border-radius: 8px;
       max-width: 90vw;
       max-height: 60vh;
-      background: #111;
+      background: #fff;
     }
     .status { color: var(--muted); font-size: 14px; min-height: 20px; }
     .success { color: var(--green); font-size: 16px; font-weight: 600; }
@@ -46,18 +48,21 @@
     }
     .primary {
       background: var(--accent);
-      color: white;
+      color: #fff;
+    }
+    .primary:hover {
+      background: var(--accent-hover);
     }
     .secondary {
-      background: #2a2a2a;
-      color: #eee;
-      border: 1px solid #333;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
     }
     .pin-input {
       padding: 10px 12px;
       border-radius: 6px;
-      border: 1px solid #333;
-      background: #1e2030;
+      border: 1px solid var(--border);
+      background: #fff;
       color: var(--text);
       font-size: 16px;
       text-align: center;
