@@ -11,6 +11,7 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
   --border: #E4E4E7;
   --green: #22c55e;
   --red: #ef4444;
+  overscroll-behavior-y: none;
 }
 * { box-sizing: border-box; }
 html, body {
@@ -137,7 +138,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -172,7 +173,7 @@ body {
 .feedback { margin-top: 6px; color: var(--muted); font-size: 12px; }
 
 /* Auth list */
-.list { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 4px 0; }
+.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 4px 0; }
 
 .auth-item {
   background: var(--card);
@@ -341,28 +342,20 @@ body {
 .add-dropdown-item:hover {
   background: var(--bg);
 }
-/* URL panel */
-.url-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px 12px;
-}
-.url-panel input {
-  flex: 1;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.url-panel input:focus {
-  border-color: var(--accent);
+.add-dropdown-item svg {
+  color: var(--muted);
 }
 
+/* Footer */
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  padding: 8px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
 /* Copy button */
 .copy-btn {
   position: relative;
@@ -440,7 +433,7 @@ body {
 
 /* Footer */
 .footer {
-  padding: 8px;
+  padding: 14px;
   text-align: center;
   border-top: 1px solid var(--border);
   background: var(--bg);

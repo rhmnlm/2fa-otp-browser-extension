@@ -10,16 +10,19 @@
   const authListEl = document.getElementById('auth-list');
   const searchInput = document.getElementById('search-input');
   const imageInput = document.getElementById('image-input');
-  const otpUrlInput = document.getElementById('otp-url');
-  const importUrlBtn = document.getElementById('import-url-btn');
-  const linkFeedback = document.getElementById('link-feedback');
   const onboardingSection = document.getElementById('onboarding-section');
   const newAuthBtn = document.getElementById('new-auth');
   const addDropdown = document.getElementById('add-dropdown');
   const addScanBtn = document.getElementById('add-scan');
   const addUploadBtn = document.getElementById('add-upload');
   const addLinkBtn = document.getElementById('add-link');
-  const urlPanel = document.getElementById('url-panel');
+
+  // URL dialog elements
+  const urlDialogOverlay = document.getElementById('url-dialog-overlay');
+  const urlDialogInput = document.getElementById('url-dialog-input');
+  const urlDialogImport = document.getElementById('url-dialog-import');
+  const urlDialogCancel = document.getElementById('url-dialog-cancel');
+  const urlDialogError = document.getElementById('url-dialog-error');
 
   // Vault UI elements
   const setupOverlay = document.getElementById('setup-overlay');
@@ -81,25 +84,37 @@
 
     addLinkBtn.addEventListener('click', () => {
       addDropdown.style.display = 'none';
-      urlPanel.style.display = urlPanel.style.display !== 'none' ? 'none' : 'flex';
-      if (urlPanel.style.display !== 'none') otpUrlInput.focus();
+      urlDialogInput.value = '';
+      urlDialogError.textContent = '';
+      urlDialogOverlay.classList.remove('hidden');
+      urlDialogInput.focus();
     });
 
-    // Import via URL
-    importUrlBtn.addEventListener('click', () => {
-      const url = otpUrlInput.value.trim();
+    // URL dialog handlers
+    urlDialogCancel.addEventListener('click', () => {
+      urlDialogOverlay.classList.add('hidden');
+    });
+
+    urlDialogImport.addEventListener('click', () => {
+      const url = urlDialogInput.value.trim();
       if (!url) return;
       const parsed = parseOtpAuthUrl(url);
       if (!parsed) {
-        linkFeedback.textContent = 'Invalid otpauth URL';
+        urlDialogError.textContent = 'Invalid otpauth URL';
         return;
       }
       addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
-      otpUrlInput.value = '';
-      linkFeedback.textContent = '';
-      urlPanel.style.display = 'none';
+      urlDialogInput.value = '';
+      urlDialogError.textContent = '';
+      urlDialogOverlay.classList.add('hidden');
       showToast('Imported from URL');
       toggleOnboarding();
+    });
+
+    urlDialogInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        urlDialogImport.click();
+      }
     });
 
     // Image import
@@ -123,13 +138,6 @@
       imageInput.value = '';
     });
 
-    // OTP URLs input
-    otpUrlInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        importUrlBtn.click();
-      }
-    });
-
     // Search
     searchInput.addEventListener('input', () => {
       searchQuery = searchInput.value;
@@ -140,7 +148,6 @@
     document.addEventListener('click', () => {
       document.querySelectorAll('.export-dropdown').forEach(d => d.style.display = 'none');
       addDropdown.style.display = 'none';
-      // Don't auto-close url-panel — user controls it
     });
 
     // Start timer to refresh OTPs
@@ -536,11 +543,16 @@
     }
   }
 
+  function formatCode(code) {
+    const mid = Math.floor(code.length / 2);
+    return code.slice(0, mid) + ' ' + code.slice(mid);
+  }
+
   function updateSingleOtp(a) {
     computeTotp(a.secret, a.digits || 6, a.period || 30, Date.now())
       .then(code => {
         const el = document.querySelector(`#${escapeId(a.id)} .copy-code`);
-        if (el) el.textContent = code;
+        if (el) el.textContent = formatCode(code);
       })
       .catch(() => {});
   }
@@ -552,7 +564,7 @@
       computeTotp(a.secret, a.digits || 6, a.period || 30, now)
         .then(code => {
           const el = document.querySelector(`#${escapeId(a.id)} .copy-code`);
-          if (el) el.textContent = code;
+          if (el) el.textContent = formatCode(code);
         })
         .catch(() => {});
     }
