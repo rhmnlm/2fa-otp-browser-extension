@@ -326,9 +326,11 @@
     }
   }
 
-  function showConfirm(message) {
+  function showConfirm(message, okText = 'OK', isDanger = false) {
     return new Promise((resolve) => {
       confirmMessage.textContent = message;
+      confirmOk.textContent = okText;
+      confirmOk.classList.toggle('danger', isDanger);
       confirmOverlay.classList.remove('hidden');
 
       const onOk = () => {
@@ -445,6 +447,9 @@
       exportUrlBtn.className = 'export-dropdown-item';
       exportUrlBtn.innerHTML = `${iconSvg('link', 14)} Export as URL`;
       exportUrlBtn.addEventListener('click', async () => {
+        dropdown.style.display = 'none';
+        const ok = await showConfirm('This will expose the raw secret in plain text. Anyone with this URL can generate your OTP codes. Continue?', 'Export', false);
+        if (!ok) return;
         const otpauthUrl = buildOtpauthUrl(a);
         try {
           await navigator.clipboard.writeText(otpauthUrl);
@@ -452,14 +457,16 @@
         } catch (err) {
           showToast('Failed to copy URL');
         }
-        dropdown.style.display = 'none';
       });
 
       // Export QR
       const exportQrBtn = document.createElement('button');
       exportQrBtn.className = 'export-dropdown-item';
       exportQrBtn.innerHTML = `${iconSvg('qr-code', 14)} Export as QR`;
-      exportQrBtn.addEventListener('click', () => {
+      exportQrBtn.addEventListener('click', async () => {
+        dropdown.style.display = 'none';
+        const ok = await showConfirm('This will expose the raw secret in plain text. Anyone with this QR code can generate your OTP codes. Continue?', 'Export', false);
+        if (!ok) return;
         const otpauthUrl = buildOtpauthUrl(a);
         const canvas = document.createElement('canvas');
         renderQr(canvas, otpauthUrl);
@@ -467,7 +474,6 @@
         link.href = canvas.toDataURL('image/png');
         link.download = `${a.name || 'otp'}-qr.png`;
         link.click();
-        dropdown.style.display = 'none';
       });
 
       // Delete
@@ -476,7 +482,7 @@
       deleteBtn.innerHTML = `${iconSvg('trash-2', 14)} Delete`;
       deleteBtn.addEventListener('click', async () => {
         dropdown.style.display = 'none';
-        const ok = await showConfirm('Remove this authenticator?');
+        const ok = await showConfirm('Remove this authenticator?', 'Delete', true);
         if (!ok) return;
         authList = authList.filter(x => x.id !== a.id);
         await saveAuths();

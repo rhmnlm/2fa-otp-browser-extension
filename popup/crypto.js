@@ -2,8 +2,7 @@ const PBKDF2_ITERATIONS = 100000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 
-const BASE32_MIN_CHARS = 16;
-const BASE32_MAX_CHARS = 128;
+const BASE32_MAX_CHARS = 256;
 
 function validateBase32Secret(secret) {
   if (typeof secret !== 'string') {
@@ -15,9 +14,6 @@ function validateBase32Secret(secret) {
   }
   if (!/^[A-Z2-7]+$/.test(normalized)) {
     return { ok: false, error: 'Secret contains invalid Base32 characters (allowed: A–Z, 2–7).' };
-  }
-  if (normalized.length < BASE32_MIN_CHARS) {
-    return { ok: false, error: `Secret is too short (minimum ${BASE32_MIN_CHARS} Base32 characters).` };
   }
   if (normalized.length > BASE32_MAX_CHARS) {
     return { ok: false, error: `Secret is too long (maximum ${BASE32_MAX_CHARS} Base32 characters).` };
