@@ -101,6 +101,11 @@
           addAuthenticator(parsed.name, parsed.secret, parsed.issuer, parsed.digits, parsed.period, parsed.type);
           uploadFeedback.textContent = 'Decoded and added from image';
           toggleOnboarding();
+          // Clear preview after successful decode
+          imagePreview.src = '';
+          imagePreview.hidden = true;
+          imageInput.value = '';
+          setTimeout(() => { uploadFeedback.textContent = ''; }, 3000);
         } else {
           uploadFeedback.textContent = 'Could not parse OTP URL from image';
         }
@@ -304,6 +309,7 @@
       const item = document.createElement('div');
       item.className = 'auth-item';
       item.id = a.id;
+      item.style.position = 'relative';
 
       const thumb = document.createElement('img');
       thumb.className = 'auth-thumb';
@@ -325,18 +331,6 @@
       nameInput.addEventListener('blur', async () => {
         a.name = nameInput.value.trim() || a.name;
         await saveAuths();
-      });
-
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-btn';
-      removeBtn.title = 'Remove';
-      removeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-      removeBtn.addEventListener('click', async () => {
-        if (!confirm('Remove this authenticator?')) return;
-        authList = authList.filter(x => x.id !== a.id);
-        await saveAuths();
-        await renderAuthList();
-        toggleOnboardingResetIfNeeded();
       });
 
       const hiddenInput = document.createElement('input');
@@ -392,8 +386,21 @@
         dropdown.hidden = true;
       });
 
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'export-dropdown-item';
+      deleteBtn.style.color = 'var(--red)';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm('Remove this authenticator?')) return;
+        authList = authList.filter(x => x.id !== a.id);
+        await saveAuths();
+        await renderAuthList();
+        toggleOnboardingResetIfNeeded();
+      });
+
       dropdown.appendChild(exportAsUrlBtn);
       dropdown.appendChild(exportAsQrBtn);
+      dropdown.appendChild(deleteBtn);
 
       menuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -426,36 +433,21 @@
         }
       });
 
-      // Countdown and progress
-      const countSpan = document.createElement('span');
-      countSpan.className = 'remaining';
-      countSpan.id = `count-${a.id}`;
-
-      const progressWrap = document.createElement('div');
-      progressWrap.className = 'progress-wrap';
-      const progressBar = document.createElement('div');
-      progressBar.className = 'progress-bar';
-      progressBar.id = `bar-${a.id}`;
-      progressWrap.appendChild(progressBar);
-
       otpWrap.appendChild(otpCode);
-      otpWrap.appendChild(countSpan);
-      otpWrap.appendChild(progressWrap);
 
       // Assemble item
       const leftGroup = document.createElement('div');
       leftGroup.style.display = 'flex';
       leftGroup.style.alignItems = 'center';
       leftGroup.style.gap = '8px';
-      leftGroup.style.width = '49%';
+      leftGroup.style.flex = '1';
+      leftGroup.style.minWidth = '0';
 
       const rightGroup = document.createElement('div');
       rightGroup.style.display = 'flex';
       rightGroup.style.alignItems = 'center';
-      rightGroup.style.gap = '8px';
-      rightGroup.style.width = '49%';
-      rightGroup.style.justifyContent = 'flex-end';
-      rightGroup.style.marginRight = '8px';
+      rightGroup.style.gap = '6px';
+      rightGroup.style.flex = '0 0 auto';
 
       const menuWrap = document.createElement('div');
       menuWrap.style.position = 'relative';
@@ -464,13 +456,23 @@
 
       leftGroup.appendChild(thumbWrap);
       leftGroup.appendChild(nameInput);
-      rightGroup.appendChild(removeBtn);
       rightGroup.appendChild(menuWrap);
       rightGroup.appendChild(otpWrap);
 
-      item.appendChild(leftGroup);
-      item.appendChild(rightGroup);
+      const row = document.createElement('div');
+      row.className = 'auth-item-row';
+      row.appendChild(leftGroup);
+      row.appendChild(rightGroup);
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'progress-bar';
+      progressBar.id = `bar-${a.id}`;
+      progressBar.style.width = '100%';
+      progressBar.style.margin = '8px -8px -8px -8px';
+
+      item.appendChild(row);
       item.appendChild(hiddenInput);
+      item.appendChild(progressBar);
 
       // Append to list
       authListEl.appendChild(item);
@@ -485,20 +487,11 @@
       .then(code => {
         const otpEl = document.querySelector(`#${escapeId(a.id)} .auth-otp`);
         if (otpEl) otpEl.textContent = code;
-        const countEl = document.getElementById(`count-${a.id}`);
-        const barEl = document.getElementById(`bar-${a.id}`);
-        if (countEl && barEl) {
-          const period = a.period || 30;
-          const elapsed = Math.floor(Date.now() / 1000) % period;
-          const remaining = period - elapsed;
-          countEl.textContent = `expires in ${remaining}s`;
-          barEl.style.width = Math.max(0, Math.min(100, (remaining / period) * 100)) + '%';
-        }
       })
       .catch(() => {});
   }
 
-  // Simple robust update using stored IDs
+  // Update OTP codes only (runs every 1s)
   function updateAllOtps() {
     const now = Date.now();
     for (const a of authList) {
@@ -506,26 +499,42 @@
         .then(code => {
           const otpEl = document.querySelector(`#${escapeId(a.id)} .auth-otp`);
           if (otpEl) otpEl.textContent = code;
-          const countEl = document.getElementById(`count-${a.id}`);
-          const barEl = document.getElementById(`bar-${a.id}`);
-          if (countEl && barEl) {
-            const period = a.period || 30;
-            const elapsed = Math.floor(now / 1000) % period;
-            const remaining = period - elapsed;
-            countEl.textContent = `expires in ${remaining}s`;
-            const pct = Math.max(0, Math.min(100, (remaining / period) * 100));
-            barEl.style.width = pct + '%';
-          }
         })
-        .catch(() => {
-          // ignore
-        });
+        .catch(() => {});
     }
   }
 
   function refreshAllOtps() {
     updateAllOtps();
   }
+
+  // Smooth visual updates for progress bar (runs on rAF)
+  function tickVisuals() {
+    const now = Date.now();
+    for (const a of authList) {
+      const period = a.period || 30;
+      const periodMs = period * 1000;
+      const elapsedMs = now % periodMs;
+      const remainingMs = periodMs - elapsedMs;
+      const pct = (remainingMs / periodMs) * 100;
+
+      const barEl = document.getElementById(`bar-${a.id}`);
+      if (barEl) {
+        barEl.style.width = Math.max(0, Math.min(100, pct)) + '%';
+        if (pct > 60) {
+          barEl.style.background = 'linear-gradient(90deg, #4caf50, #8bc34a)';
+        } else if (pct > 30) {
+          barEl.style.background = '#ff9800';
+        } else {
+          barEl.style.background = '#e57373';
+        }
+      }
+    }
+    requestAnimationFrame(tickVisuals);
+  }
+
+  // Start the smooth animation loop
+  requestAnimationFrame(tickVisuals);
 
   function defaultAvatarSvg() {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">

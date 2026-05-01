@@ -64,19 +64,25 @@ body {
 .primary.danger {
   background: var(--red);
 }
-.list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 0; }
+.list { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 8px 0; }
 .auth-item {
   display: flex;
-  /* justify-content: space-between; */
+  flex-direction: column;
   width: 100%;
-  align-items: center;
   padding: 8px;
   border: 1px solid #2a2a2a;
   border-radius: 8px;
   background: #141824;
-  gap: 16px;
+  gap: 0;
 }
-.auth-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
+.auth-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+.auth-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
 .auth-thumb-wrap { position: relative; display: inline-block; cursor: pointer; }
 .auth-thumb-overlay {
   position: absolute;
@@ -91,15 +97,21 @@ body {
   color: #eee;
 }
 .auth-thumb-wrap:hover .auth-thumb-overlay { opacity: 1; }
-.auth-name { flex: 1; margin-left: 8px; padding: 4px 6px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: white; }
+.auth-name { flex: 1; min-width: 0; margin-left: 0; padding: 4px 6px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: white; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .auth-name:hover, .auth-name:focus { border-color: #555; background: #1e2030; outline: none; }
-.remove-btn { margin-left: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #eee; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.auth-otp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas; font-size: 20px; letter-spacing: 0.5px; padding: 6px 12px; border-radius: 6px; background: #111; cursor: pointer; user-select: none; display: inline-block; min-width: 110px; text-align: center; font-variant-numeric: tabular-nums; }
-.otp-area { display: grid; align-items: center; gap: 8px; grid-template-columns: repeat(3, 1fr);}
-.remaining { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.auth-otp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas; font-size: 18px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 6px; background: #111; cursor: pointer; user-select: none; display: inline-block; min-width: 90px; text-align: center; font-variant-numeric: tabular-nums; }
+.otp-area { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 90px; }
 
-.progress-wrap { height: 6px; width: 100%; background: #333; border-radius: 4px; overflow: hidden; }
-.progress-bar { height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); }
+.otp-area:hover {
+  cursor: pointer;
+}
+
+.progress-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  transition: width 0.15s linear, background 0.3s ease;
+  border-radius: 0 0 8px 8px;
+}
 
 .preview { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
 
@@ -108,14 +120,13 @@ body {
 }
 
 .menu-btn {
-  margin-left: 6px;
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 6px;
   border: 1px solid #333;
   background: #2a2a2a;
   color: #eee;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
 }
 .menu-btn:hover { background: #383838; }
