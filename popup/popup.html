@@ -7,53 +7,67 @@
 </head>
 <body>
   <div id="app">
-    <header class="header" style="display:flex;justify-content:space-between;align-items:center;gap:8px; padding-right:16px; position:sticky; top:0; z-index:40; background:var(--bg);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <img src="../icons/icon.svg" alt="OTP Vault" width="28" height="28"/>
-        <h1 style="margin:0;font-size:18px;">OTP Vault</h1>
+    <header class="header">
+      <div class="header-top">
+        <div class="header-brand">
+          <div class="header-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <h1>OTP Vault</h1>
+        </div>
+        <div class="header-actions">
+          <button id="lock-btn" class="lock-btn" title="Lock vault" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Lock
+          </button>
+          <div style="position: relative;">
+            <button id="new-auth" class="primary" title="Add authenticator">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </button>
+            <div class="add-dropdown" id="add-dropdown" style="display: none;">
+              <div class="add-dropdown-header">Add Authenticator</div>
+              <button class="add-dropdown-item" id="add-scan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                Scan QR Code
+              </button>
+              <button class="add-dropdown-item" id="add-upload">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.83 0L9 18"/></svg>
+                Upload Image
+              </button>
+              <button class="add-dropdown-item" id="add-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Enter URL/Code
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button id="lock-btn" class="lock-btn" title="Lock vault" hidden>Lock</button>
-        <button id="new-auth" class="primary" title="Add authenticator" style="padding:6px 10px; font-size:14px; border-radius:6px;">+</button>
+      <div class="search-bar" id="search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <input type="text" id="search-input" placeholder="Search authenticators..." autocomplete="off" />
       </div>
     </header>
 
     <section id="onboarding-section" class="panel" style="display:none;">
       <h2>Getting started</h2>
-      <p>Click the + button to add your first authenticator. This onboarding helps you set up your first token quickly.</p>
+      <p>Click the + button to add your first authenticator.</p>
     </section>
 
-    <section id="add-section" class="panel" style="display:none;">
-      <h2>Add authenticator</h2>
-      <div class="tabs" id="import-tabs">
-        <button class="tab-btn active" data-tab="qr">QR (webcam)</button>
-        <button class="tab-btn" data-tab="upload">Upload image</button>
-        <button class="tab-btn" data-tab="link">Link</button>
-      </div>
+    <div id="url-panel" class="url-panel" style="display:none;">
+      <input type="text" id="otp-url" placeholder="otpauth://totp/Issuer:Account?secret=BASE32…" autocomplete="off" />
+      <button id="import-url-btn" class="primary">Import</button>
+    </div>
+    <div id="link-feedback" class="feedback" style="padding: 0 16px 12px; margin-top: -8px;"></div>
 
-      <div id="tab-qr" class="tab-content active">
-        <p style="color: var(--muted); margin: 0 0 12px;">Open the QR scanner in a new tab to scan with your camera.</p>
-        <button id="start-scan" class="primary">Open QR Scanner</button>
-        <div id="qr-feedback" class="feedback"></div>
-      </div>
-
-      <div id="tab-upload" class="tab-content">
-        <input type="file" id="image-input" accept="image/*" />
-        <img id="image-preview" class="preview" src="" alt="Preview" hidden />
-        <div id="upload-feedback" class="feedback"></div>
-      </div>
-
-      <div id="tab-link" class="tab-content">
-        <input type="text" id="otp-url" placeholder="otpauth://totp/Issuer:Account?secret=BASE32…" />
-        <button id="import-url-btn" class="primary">Import</button>
-        <div id="link-feedback" class="feedback"></div>
-      </div>
-    </section>
+    <input type="file" id="image-input" accept="image/*" style="display:none;" />
 
     <section id="list-section" class="panel">
-      <h2>Authenticators</h2>
       <div id="auth-list" class="list"></div>
     </section>
+
+    <div class="footer">
+      <span id="footer-timer">Next code in 30s</span>
+    </div>
 
     <!-- Setup overlay -->
     <div id="setup-overlay" class="overlay hidden">
